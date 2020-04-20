@@ -1,0 +1,49 @@
+version: '3'
+services:
+  basic: &basic
+    environment:
+      DB_HOST: "psql"
+      MONGO_URL: "mongodb://root:rootpassword@mongo:27017/"
+      MONGO_DB: "stocks_db"
+      MONGO_COLLECTION: "pages"
+    build: .
+    depends_on:
+      - psql
+      - mongo
+
+  django:
+    <<: *basic
+    build: .
+    command: python manage.py runserver 0.0.0.0:8088
+    ports:
+      - "8088:8088"
+
+  processor:
+    <<: *basic
+    command: sh -c scripts/processor.sh
+
+  collector:
+    <<: *basic
+    command: sh -c scripts/collector.sh
+
+  psql:
+    image: "postgres"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: frontend
+    ports:
+      - "5432:5432"
+    volumes:
+      - database-data:/var/lib/postgresql/data/ # persist data even if container shuts down
+
+  mongo:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27017:27017"
+
+volumes:
+  database-data: # named volumes can be managed easier using
